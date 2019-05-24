@@ -226,119 +226,98 @@ void setup() {
 
 }
 
+
 void loop() {
-  do {
-    mp3.loop();
-    // Buttons werden nun über JS_Button gehandelt, dadurch kann jede Taste
-    // doppelt belegt werden
-    pauseButton.read();
-    upButton.read();
-    downButton.read();
-
-    if (pauseButton.wasReleased()) {
-      if (ignorePauseButton == false) {
-        if (isPlaying())
-          mp3.pause();
-        else
-          mp3.start();
-      }
-      ignorePauseButton = false;
-    } else if (pauseButton.pressedFor(LONG_PRESS) &&
-               ignorePauseButton == false) {
-      if (isPlaying())
-        mp3.playAdvertisement(currentTrack);
-      else {
-        knownCard = false;
-        mp3.playMp3FolderTrack(800);
-        Serial.println(F("Karte resetten..."));
-        resetCard();
-        mfrc522.PICC_HaltA();
-        mfrc522.PCD_StopCrypto1();
-      }
-      ignorePauseButton = true;
-    }
-
-    if (upButton.pressedFor(LONG_PRESS)) {
-      Serial.println(F("Volume Up"));
-      mp3.increaseVolume();
-      ignoreUpButton = true;
-    } else if (upButton.wasReleased()) {
-      if (!ignoreUpButton)
-        nextTrack(random(65536));
-      else
-        ignoreUpButton = false;
-    }
-
-    if (downButton.pressedFor(LONG_PRESS)) {
-      Serial.println(F("Volume Down"));
-      mp3.decreaseVolume();
-      ignoreDownButton = true;
-    } else if (downButton.wasReleased()) {
-      if (!ignoreDownButton)
-        previousTrack();
-      else
-        ignoreDownButton = false;
-    }
-    // Ende der Buttons
-  } while (!mfrc522.PICC_IsNewCardPresent());
-
-  // RFID Karte wurde aufgelegt
-
-  if (!mfrc522.PICC_ReadCardSerial())
+  // Look for new cards
+  if ( !mfrc522.PICC_IsNewCardPresent()) {
     return;
-
-  if (readCard(&myCard) == true) {
-    if (myCard.cookie == 322417479 && myCard.folder != 0 && myCard.mode != 0) {
-
-      knownCard = true;
-      _lastTrackFinished = 0;
-      numTracksInFolder = mp3.getFolderTrackCount(myCard.folder);
-      Serial.print(numTracksInFolder);
-      Serial.print(F(" Dateien in Ordner "));
-      Serial.println(myCard.folder);
-
-      // Hörspielmodus: eine zufällige Datei aus dem Ordner
-      if (myCard.mode == 1) {
-        Serial.println(F("Hörspielmodus -> zufälligen Track wiedergeben"));
-        currentTrack = random(1, numTracksInFolder + 1);
-        Serial.println(currentTrack);
-        mp3.playFolderTrack(myCard.folder, currentTrack);
-      }
-      // Album Modus: kompletten Ordner spielen
-      if (myCard.mode == 2) {
-        Serial.println(F("Album Modus -> kompletten Ordner wiedergeben"));
-        currentTrack = 1;
-        mp3.playFolderTrack(myCard.folder, currentTrack);
-      }
-      // Party Modus: Ordner in zufälliger Reihenfolge
-      if (myCard.mode == 3) {
-        Serial.println(
-            F("Party Modus -> Ordner in zufälliger Reihenfolge wiedergeben"));
-        currentTrack = random(1, numTracksInFolder + 1);
-        mp3.playFolderTrack(myCard.folder, currentTrack);
-      }
-      // Einzel Modus: eine Datei aus dem Ordner abspielen
-      if (myCard.mode == 4) {
-        Serial.println(
-            F("Einzel Modus -> eine Datei aus dem Odrdner abspielen"));
-        currentTrack = myCard.special;
-        mp3.playFolderTrack(myCard.folder, currentTrack);
-      }
-      // Hörbuch Modus: kompletten Ordner spielen und Fortschritt merken
-      if (myCard.mode == 5) {
-        Serial.println(F("Hörbuch Modus -> kompletten Ordner spielen und "
-                         "Fortschritt merken"));
-        currentTrack = EEPROM.read(myCard.folder);
-        mp3.playFolderTrack(myCard.folder, currentTrack);
-      }
-    }
-
-    // Neue Karte konfigurieren
-    else {
-      knownCard = false;
-      setupCard();
-    }
   }
+  if ( !mfrc522.PICC_ReadCardSerial()) {
+    return;
+  }
+   
+  Serial.println("Reading Card");
+  // mfrc522.PICC_DumpDetailsToSerial(&(mfrc522.uid)); //dump some details about the card
+  mp3.playFolderTrack(1, 1);
+
+//  if (readCard(&myCard) == true) {
+//    if (myCard.cookie == 322417479 && myCard.folder != 0 && myCard.mode != 0) {
+//
+//      knownCard = true;
+//      _lastTrackFinished = 0;
+//      numTracksInFolder = mp3.getFolderTrackCount(myCard.folder);
+//      Serial.print(numTracksInFolder);
+//      Serial.print(F(" Dateien in Ordner "));
+//      Serial.println(myCard.folder);
+//
+//      // Hörspielmodus: eine zufällige Datei aus dem Ordner
+//      if (myCard.mode == 1) {
+//        Serial.println(F("Hörspielmodus -> zufälligen Track wiedergeben"));
+//        currentTrack = random(1, numTracksInFolder + 1);
+//        Serial.println(currentTrack);
+//        mp3.playFolderTrack(myCard.folder, currentTrack);
+//      }
+//      // Album Modus: kompletten Ordner spielen
+//      if (myCard.mode == 2) {
+//        Serial.println(F("Album Modus -> kompletten Ordner wiedergeben"));
+//        currentTrack = 1;
+//        mp3.playFolderTrack(myCard.folder, currentTrack);
+//      }
+//      // Party Modus: Ordner in zufälliger Reihenfolge
+//      if (myCard.mode == 3) {
+//        Serial.println(
+//            F("Party Modus -> Ordner in zufälliger Reihenfolge wiedergeben"));
+//        currentTrack = random(1, numTracksInFolder + 1);
+//        mp3.playFolderTrack(myCard.folder, currentTrack);
+//      }
+//      // Einzel Modus: eine Datei aus dem Ordner abspielen
+//      if (myCard.mode == 4) {
+//        Serial.println(
+//            F("Einzel Modus -> eine Datei aus dem Odrdner abspielen"));
+//        currentTrack = myCard.special;
+//        mp3.playFolderTrack(myCard.folder, currentTrack);
+//      }
+//      // Hörbuch Modus: kompletten Ordner spielen und Fortschritt merken
+//      if (myCard.mode == 5) {
+//        Serial.println(F("Hörbuch Modus -> kompletten Ordner spielen und "
+//                         "Fortschritt merken"));
+//        currentTrack = EEPROM.read(myCard.folder);
+//        mp3.playFolderTrack(myCard.folder, currentTrack);
+//      }
+//    }
+//
+//    // Neue Karte konfigurieren
+//    else {
+//      knownCard = false;
+//      setupCard();
+//    }
+//  }
+  //mfrc522.PICC_HaltA();
+  // mfrc522.PCD_StopCrypto1();
+
+
+
+
+ // Check if Card was removed
+  int counter = 0;
+  bool current, previous;
+  bool cardRemoved = false;
+  do {
+    //mp3.loop();
+   
+    previous = !mfrc522.PICC_IsNewCardPresent();
+    current =!mfrc522.PICC_IsNewCardPresent();
+
+    if (current && previous) counter++;
+
+    previous = current;
+    cardRemoved = (counter>2);      
+    delay(50);    
+  } while (!cardRemoved);
+
+  Serial.println("Card was removed. Pause mp3.");
+  mp3.pause();
+  delay(500); //change value if you want to read cards faster
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
 }
