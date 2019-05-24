@@ -226,100 +226,106 @@ void setup() {
 
 }
 
+bool rfid_tag_present_prev = false;
+bool rfid_tag_present = false;
+int _rfid_error_counter = 0;
+bool _tag_found = false;
 
 void loop() {
-  // Look for new cards
-  if ( !mfrc522.PICC_IsNewCardPresent()) {
-    return;
+  rfid_tag_present_prev = rfid_tag_present;
+
+  _rfid_error_counter += 1;
+  if(_rfid_error_counter > 2){
+    _tag_found = false;
   }
-  if ( !mfrc522.PICC_ReadCardSerial()) {
-    return;
+
+  // Detect Tag without looking for collisions
+  byte bufferATQA[2];
+  byte bufferSize = sizeof(bufferATQA);
+
+  // Reset baud rates
+  mfrc522.PCD_WriteRegister(mfrc522.TxModeReg, 0x00);
+  mfrc522.PCD_WriteRegister(mfrc522.RxModeReg, 0x00);
+  // Reset ModWidthReg
+  mfrc522.PCD_WriteRegister(mfrc522.ModWidthReg, 0x26);
+
+  MFRC522::StatusCode result = mfrc522.PICC_RequestA(bufferATQA, &bufferSize);
+
+  if(result == mfrc522.STATUS_OK){
+    if ( ! mfrc522.PICC_ReadCardSerial()) { //Since a PICC placed get Serial and continue   
+      return;
+    }
+    _rfid_error_counter = 0;
+    _tag_found = true;        
   }
-   
-  Serial.println("Reading Card");
-  // mfrc522.PICC_DumpDetailsToSerial(&(mfrc522.uid)); //dump some details about the card
-  mp3.playFolderTrack(1, 1);
+  
+  rfid_tag_present = _tag_found;
+  
+  // Tag found where there was no tag previously
+  if (rfid_tag_present && !rfid_tag_present_prev){
+    Serial.println("Tag found");
+    // mfrc522.PICC_DumpDetailsToSerial(&(mfrc522.uid)); //dump some details about the card
 
-//  if (readCard(&myCard) == true) {
-//    if (myCard.cookie == 322417479 && myCard.folder != 0 && myCard.mode != 0) {
-//
-//      knownCard = true;
-//      _lastTrackFinished = 0;
-//      numTracksInFolder = mp3.getFolderTrackCount(myCard.folder);
-//      Serial.print(numTracksInFolder);
-//      Serial.print(F(" Dateien in Ordner "));
-//      Serial.println(myCard.folder);
-//
-//      // Hörspielmodus: eine zufällige Datei aus dem Ordner
-//      if (myCard.mode == 1) {
-//        Serial.println(F("Hörspielmodus -> zufälligen Track wiedergeben"));
-//        currentTrack = random(1, numTracksInFolder + 1);
-//        Serial.println(currentTrack);
-//        mp3.playFolderTrack(myCard.folder, currentTrack);
-//      }
-//      // Album Modus: kompletten Ordner spielen
-//      if (myCard.mode == 2) {
-//        Serial.println(F("Album Modus -> kompletten Ordner wiedergeben"));
-//        currentTrack = 1;
-//        mp3.playFolderTrack(myCard.folder, currentTrack);
-//      }
-//      // Party Modus: Ordner in zufälliger Reihenfolge
-//      if (myCard.mode == 3) {
-//        Serial.println(
-//            F("Party Modus -> Ordner in zufälliger Reihenfolge wiedergeben"));
-//        currentTrack = random(1, numTracksInFolder + 1);
-//        mp3.playFolderTrack(myCard.folder, currentTrack);
-//      }
-//      // Einzel Modus: eine Datei aus dem Ordner abspielen
-//      if (myCard.mode == 4) {
-//        Serial.println(
-//            F("Einzel Modus -> eine Datei aus dem Odrdner abspielen"));
-//        currentTrack = myCard.special;
-//        mp3.playFolderTrack(myCard.folder, currentTrack);
-//      }
-//      // Hörbuch Modus: kompletten Ordner spielen und Fortschritt merken
-//      if (myCard.mode == 5) {
-//        Serial.println(F("Hörbuch Modus -> kompletten Ordner spielen und "
-//                         "Fortschritt merken"));
-//        currentTrack = EEPROM.read(myCard.folder);
-//        mp3.playFolderTrack(myCard.folder, currentTrack);
-//      }
-//    }
-//
-//    // Neue Karte konfigurieren
-//    else {
-//      knownCard = false;
-//      setupCard();
-//    }
-//  }
-  //mfrc522.PICC_HaltA();
-  // mfrc522.PCD_StopCrypto1();
+    Serial.println("Reading Card");
+    if (readCard(&myCard) == true) {
+      if (myCard.cookie == 322417479 && myCard.folder != 0 && myCard.mode != 0) {
+        knownCard = true;
+        _lastTrackFinished = 0;
+        numTracksInFolder = mp3.getFolderTrackCount(myCard.folder);
+        Serial.print(numTracksInFolder);
+        Serial.print(F(" Dateien in Ordner "));
+        Serial.println(myCard.folder);
+  
+        // Hörspielmodus: eine zufällige Datei aus dem Ordner
+        if (myCard.mode == 1) {
+          Serial.println(F("Hörspielmodus -> zufälligen Track wiedergeben"));
+          currentTrack = random(1, numTracksInFolder + 1);
+          Serial.println(currentTrack);
+          mp3.playFolderTrack(myCard.folder, currentTrack);
+        }
+        // Album Modus: kompletten Ordner spielen
+        if (myCard.mode == 2) {
+          Serial.println(F("Album Modus -> kompletten Ordner wiedergeben"));
+          currentTrack = 1;
+          mp3.playFolderTrack(myCard.folder, currentTrack);
+        }
+        // Party Modus: Ordner in zufälliger Reihenfolge
+        if (myCard.mode == 3) {
+          Serial.println(
+              F("Party Modus -> Ordner in zufälliger Reihenfolge wiedergeben"));
+          currentTrack = random(1, numTracksInFolder + 1);
+          mp3.playFolderTrack(myCard.folder, currentTrack);
+        }
+        // Einzel Modus: eine Datei aus dem Ordner abspielen
+        if (myCard.mode == 4) {
+          Serial.println(
+              F("Einzel Modus -> eine Datei aus dem Odrdner abspielen"));
+          currentTrack = myCard.special;
+          mp3.playFolderTrack(myCard.folder, currentTrack);
+        }
+        // Hörbuch Modus: kompletten Ordner spielen und Fortschritt merken
+        if (myCard.mode == 5) {
+          Serial.println(F("Hörbuch Modus -> kompletten Ordner spielen und "
+                           "Fortschritt merken"));
+          currentTrack = EEPROM.read(myCard.folder);
+          mp3.playFolderTrack(myCard.folder, currentTrack);
+        }
+      }
 
-
-
-
- // Check if Card was removed
-  int counter = 0;
-  bool current, previous;
-  bool cardRemoved = false;
-  do {
-    //mp3.loop();
-   
-    previous = !mfrc522.PICC_IsNewCardPresent();
-    current =!mfrc522.PICC_IsNewCardPresent();
-
-    if (current && previous) counter++;
-
-    previous = current;
-    cardRemoved = (counter>2);      
-    delay(50);    
-  } while (!cardRemoved);
-
-  Serial.println("Card was removed. Pause mp3.");
-  mp3.pause();
-  delay(500); //change value if you want to read cards faster
-  mfrc522.PICC_HaltA();
-  mfrc522.PCD_StopCrypto1();
+      // Neue Karte konfigurieren
+      else {
+        knownCard = false;
+        setupCard();
+      }
+    }
+  }
+  
+  // No tag found anymore where there was a tag before
+  if (!rfid_tag_present && rfid_tag_present_prev){
+    Serial.println("Tag gone");
+    mp3.pause();
+  }
+    
 }
 
 int voiceMenu(int numberOfOptions, int startMessage, int messageOffset,
@@ -452,14 +458,13 @@ void setupCard() {
 }
 
 bool readCard(nfcTagObject *nfcTag) {
-  bool returnValue = true;
   // Show some details of the PICC (that is: the tag/card)
   Serial.print(F("Card UID:"));
   dump_byte_array(mfrc522.uid.uidByte, mfrc522.uid.size);
   Serial.println();
-  Serial.print(F("PICC type: "));
-  MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
-  Serial.println(mfrc522.PICC_GetTypeName(piccType));
+  //Serial.print(F("PICC type: "));
+  //MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
+  //Serial.println(mfrc522.PICC_GetTypeName(piccType));
 
   byte buffer[18];
   byte size = sizeof(buffer);
@@ -469,16 +474,15 @@ bool readCard(nfcTagObject *nfcTag) {
   status = (MFRC522::StatusCode)mfrc522.PCD_Authenticate(
       MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
   if (status != MFRC522::STATUS_OK) {
-    returnValue = false;
     Serial.print(F("PCD_Authenticate() failed: "));
     Serial.println(mfrc522.GetStatusCodeName(status));
-    return;
+    return false;
   }
 
   // Show the whole sector as it currently is
-  Serial.println(F("Current data in sector:"));
-  mfrc522.PICC_DumpMifareClassicSectorToSerial(&(mfrc522.uid), &key, sector);
-  Serial.println();
+  //Serial.println(F("Current data in sector:"));
+  //mfrc522.PICC_DumpMifareClassicSectorToSerial(&(mfrc522.uid), &key, sector);
+  //Serial.println();
 
   // Read data from the block
   Serial.print(F("Reading data from block "));
@@ -486,9 +490,9 @@ bool readCard(nfcTagObject *nfcTag) {
   Serial.println(F(" ..."));
   status = (MFRC522::StatusCode)mfrc522.MIFARE_Read(blockAddr, buffer, &size);
   if (status != MFRC522::STATUS_OK) {
-    returnValue = false;
     Serial.print(F("MIFARE_Read() failed: "));
     Serial.println(mfrc522.GetStatusCodeName(status));
+    return false;
   }
   Serial.print(F("Data in block "));
   Serial.print(blockAddr);
@@ -509,7 +513,15 @@ bool readCard(nfcTagObject *nfcTag) {
   nfcTag->mode = buffer[6];
   nfcTag->special = buffer[7];
 
-  return returnValue;
+  // Halt PICC
+  mfrc522.PICC_HaltA();
+  // Stop encryption on PCD
+  mfrc522.PCD_StopCrypto1(); // Workaround from https://github.com/miguelbalboa/rfid/issues/352#issuecomment-431003051
+  mfrc522.PCD_Reset();
+  delay(100);
+  mfrc522.PCD_Init(); // Init MFRC522
+
+  return true;
 }
 
 void writeCard(nfcTagObject nfcTag) {
