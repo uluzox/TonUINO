@@ -17,6 +17,8 @@
     Information and contribution at https://tonuino.de.
 */
 
+// uncomment the below line to enable volume control with a potentiometer
+//#define POTI
 static const uint32_t cardCookie = 322417479;
 
 // DFPlayer Mini
@@ -68,7 +70,7 @@ static bool hasCard = false;
 static byte lastCardUid[4];
 static byte retries;
 static bool lastCardWasUL;
-static bool configurationBefore=false;
+static bool forgetLastCard=false;
 
 const byte PCS_NO_CHANGE     = 0; // no change detected since last pollCard() call
 const byte PCS_NEW_CARD      = 1; // card with new UID detected (had no card or other card before)
@@ -81,7 +83,7 @@ folderSettings *myFolder;
 unsigned long sleepAtMillis = 0;
 static uint16_t _lastTrackFinished;
 
-#define POTI
+
 
 #ifdef POTI
 const byte POTIPIN      =7;
@@ -90,9 +92,14 @@ uint16_t oldPotiValue;
 #endif
 
 
-uint8_t simonSays[30];
+uint8_t simonSays[20];
 uint8_t simonLength;
 uint8_t simonCurrent;
+
+#define GELB 1010
+#define GRUEN 1011
+#define BLAU 1012
+#define ROT 1013
 
 static void nextTrack(uint16_t track);
 uint8_t voiceMenu(int numberOfOptions, int startMessage, int messageOffset,
@@ -515,11 +522,12 @@ class Farbenmemory: public Modifier {
         simonLength=3;
         simonCurrent=0;
         mp3.pause();
-        configurationBefore=true;
+        forgetLastCard=true;
       Serial.println(F("=== Simon Says()"));
       generateColors();
       }
-      uint16_t Farben[4] ={0, 1013, 1011, 1012};
+      //Farben: 0=nicht verwendet, 1=Zurück/Leise, 2=Play/Pause, 3=Vor/Lauter
+      uint16_t Farben[4] ={0, GELB, GRUEN, BLAU};
     bool generateColors() {
       mp3.playMp3FolderTrack(1000);
       delay(3000);
@@ -528,7 +536,7 @@ class Farbenmemory: public Modifier {
       {
         randomSeed(millis() + random(1000));
         simonSays[i] = random(1, 4);
-        delay(1200);
+        delay(1000);
 
         Serial.println(simonSays[i]);
         Serial.print("-");
@@ -556,9 +564,13 @@ class Farbenmemory: public Modifier {
           mp3.playMp3FolderTrack(1002);
           delay(3000);
           Serial.println(F("===die ganze Folge wurde erraten"));
-          simonLength++;
-          simonCurrent=0;
-          generateColors();
+          //Größe des Arrays darf nicht überschritten werden
+          if (simonLength+1<20)
+          {
+            simonLength++;
+            simonCurrent=0;
+            generateColors();
+          }
           return true;
         }
         return true;
@@ -754,8 +766,8 @@ MFRC522::StatusCode status;
 #define busyPin 4
 #define shutdownPin 7
 
-
 #define LONG_PRESS 1000
+
 
 Button pauseButton(buttonPause);
 Button upButton(buttonUp);
@@ -1161,7 +1173,7 @@ void handleCardReader()
     if (mySettings.stopWhenCardAway) 
     {
       //nur weiterspielen wenn vorher nicht konfiguriert wurde
-      if (!configurationBefore) 
+      if (!forgetLastCard) 
       {
           mp3.start();
           disablestandbyTimer();
@@ -1317,11 +1329,12 @@ void onNewCard()
       waitForTrackToFinish();
       setupCard();
     }
+    forgetLastCard=false;
 }
 
 void adminMenu(bool fromCard = false) {
   //Vergesse die vorherige Karte, wenn das Admin Menü betreten wird
-  configurationBefore=true;
+  forgetLastCard=true;
   disablestandbyTimer();
   mp3.pause();
   Serial.println(F("=== adminMenu()"));
@@ -1728,7 +1741,7 @@ void setupCard() {
     do {
     } while (isPlaying());
     writeCard(newCard);
-    configurationBefore=true;
+    forgetLastCard=true;
   }
   delay(1000);
 }
