@@ -268,7 +268,7 @@ void loop() {
 
     Serial.println("Reading Card");
     if (readCard(&myCard) == true) {
-      
+
       if (myCard.cookie == 322417479 && myCard.folder != 0 && myCard.mode != 0) {
         knownCard = true;
         _lastTrackFinished = 0;
@@ -327,14 +327,76 @@ void loop() {
     mp3.pause();
   }
 
-   // Halt PICC
+  // Listen to buttons if no new tag or tag not removed
+  mp3.loop();
+  // Buttons werden nun über JS_Button gehandelt, dadurch kann jede Taste
+  // doppelt belegt werden
+  pauseButton.read();
+  upButton.read();
+  downButton.read();
+
+  // PLAY / PAUSE
+  if (pauseButton.wasReleased()) {
+    if (ignorePauseButton == false) {
+      if (isPlaying()) {
+        Serial.println("Press pause. Pausing music.");
+        mp3.pause();
+      } else {
+        Serial.println("Press play. Playing music.");
+        mp3.start();
+      }
+    }
+    ignorePauseButton = false;
+  } else if (pauseButton.pressedFor(LONG_PRESS) && ignorePauseButton == false) {
+      Serial.println("Long press Play/Pause.");
+      
+      if (isPlaying())
+        mp3.playAdvertisement(currentTrack);
+      else {
+        knownCard = false;
+        mp3.playMp3FolderTrack(800);
+        Serial.println(F("Karte resetten..."));
+        resetCard();
+        mfrc522.PICC_HaltA();
+        mfrc522.PCD_StopCrypto1();
+      }
+      ignorePauseButton = true;
+  }
+
+  // VOLUME UP / NEXT TRACK
+  if (upButton.pressedFor(LONG_PRESS)) {
+    Serial.println(F("Volume Up"));
+    mp3.increaseVolume();
+    ignoreUpButton = true;
+  } else if (upButton.wasReleased()) {
+    if (!ignoreUpButton) {
+      nextTrack(random(65536));
+    } else {
+      ignoreUpButton = false;
+    }
+  }
+
+  // VOLUME DOWN / PREVIOUS TRACK
+  if (downButton.pressedFor(LONG_PRESS)) {
+    Serial.println(F("Volume Down"));
+    mp3.decreaseVolume();
+    ignoreDownButton = true;
+  } else if (downButton.wasReleased()) {
+    if (!ignoreDownButton) {
+      previousTrack();
+    } else {
+      ignoreDownButton = false;
+    }
+  }
+  // Ende der Buttons
+
+  // Halt PICC
   mfrc522.PICC_HaltA();
   // Stop encryption on PCD
   mfrc522.PCD_StopCrypto1(); // Workaround from https://github.com/miguelbalboa/rfid/issues/352#issuecomment-431003051
   mfrc522.PCD_Reset();
   delay(100);
-  mfrc522.PCD_Init(); // Init MFRC522
-    
+  mfrc522.PCD_Init(); // Init MFRC522  
 }
 
 int voiceMenu(int numberOfOptions, int startMessage, int messageOffset,
