@@ -232,6 +232,7 @@ int _rfid_error_counter = 0;
 bool _tag_found = false;
 
 void loop() {
+  // ############### DETECT TAGS ###################################################
   rfid_tag_present_prev = rfid_tag_present;
 
   _rfid_error_counter += 1;
@@ -260,8 +261,8 @@ void loop() {
   }
   
   rfid_tag_present = _tag_found;
-  
-  // Tag found where there was no tag previously
+
+  // ############### Tag found where there was no tag previously ###################
   if (rfid_tag_present && !rfid_tag_present_prev){
     Serial.println("Tag found");
     // mfrc522.PICC_DumpDetailsToSerial(&(mfrc522.uid)); //dump some details about the card
@@ -321,13 +322,13 @@ void loop() {
     }
   }
   
-  // No tag found anymore where there was a tag before
+  // ############### No tag found anymore where there was a tag before ######################
   if (!rfid_tag_present && rfid_tag_present_prev){
     Serial.println("Tag gone. Pausing music.");
     mp3.pause();
   }
 
-  // Listen to buttons if no new tag or tag not removed
+  // ######### Listen to buttons if no new tag or tag not removed ###########################
   mp3.loop();
   // Buttons werden nun über JS_Button gehandelt, dadurch kann jede Taste
   // doppelt belegt werden
@@ -388,8 +389,8 @@ void loop() {
       ignoreDownButton = false;
     }
   }
-  // Ende der Buttons
 
+  // ############## RESET RFID READER ###########################################
   // Halt PICC
   mfrc522.PICC_HaltA();
   // Stop encryption on PCD
