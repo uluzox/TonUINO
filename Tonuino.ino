@@ -268,9 +268,17 @@ void loop() {
     // mfrc522.PICC_DumpDetailsToSerial(&(mfrc522.uid)); //dump some details about the card
 
     Serial.println("Reading Card");
+    nfcTagObject previousCard = myCard;
+
     if (readCard(&myCard) == true) {
 
-      if (myCard.cookie == 322417479 && myCard.folder != 0 && myCard.mode != 0) {
+      if (myCard.cookie == previousCard.cookie && myCard.folder == previousCard.folder && myCard.mode == previousCard.mode) {
+        // C does not know equality comparison for structs a la myCard == previousCard, use member comparison instead
+
+        Serial.print("Card placed on reader is same as previous. Resume playing.");
+        mp3.start();
+        
+      } else if (myCard.cookie == 322417479 && myCard.folder != 0 && myCard.mode != 0) {       
         knownCard = true;
         _lastTrackFinished = 0;
         numTracksInFolder = mp3.getFolderTrackCount(myCard.folder);
