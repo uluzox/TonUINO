@@ -39,7 +39,7 @@ public:
     Serial.println(errorCode);
   }
   static void OnPlayFinished(uint16_t track) {
-    Serial.print("Track beendet");
+    Serial.print("Track beendet: ");
     Serial.println(track);
     delay(100);
     nextTrack(track);
@@ -88,7 +88,7 @@ static void nextTrack(uint16_t track) {
       currentTrack = currentTrack + 1;
       mp3.playFolderTrack(myCard.folder, currentTrack);
       Serial.print(F("Albummodus ist aktiv -> nächster Track: "));
-      Serial.print(currentTrack);
+      Serial.println(currentTrack);
     } else 
 //      mp3.sleep();   // Je nach Modul kommt es nicht mehr zurück aus dem Sleep!
     { }
