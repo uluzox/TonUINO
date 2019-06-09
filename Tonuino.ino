@@ -272,7 +272,7 @@ void loop() {
 
     if (readCard(&myCard) == true) {
 
-      if (myCard.cookie == previousCard.cookie && myCard.folder == previousCard.folder && myCard.mode == previousCard.mode) {
+      if (myCard.cookie == previousCard.cookie && myCard.folder == previousCard.folder && myCard.mode == previousCard.mode && myCard.special == previousCard.special) {
         // C does not know equality comparison for structs a la myCard == previousCard, use member comparison instead
 
         Serial.print("Card placed on reader is same as previous. Resume playing.");
@@ -419,8 +419,12 @@ int voiceMenu(int numberOfOptions, int startMessage, int messageOffset,
     downButton.read();
     mp3.loop();
     if (pauseButton.wasPressed()) {
-      if (returnValue != 0)
+      if (returnValue != 0) {
+        Serial.print("VoiceMenu returning ");
+        Serial.println(returnValue);
+        
         return returnValue;
+      }
       delay(1000);
     }
 
@@ -533,7 +537,7 @@ void setupCard() {
     myCard.special = voiceMenu(3, 320, 320);
 
   // Karte ist konfiguriert -> speichern
-  mp3.pause();
+  mp3.stop();
   writeCard(myCard);
 }
 
@@ -593,6 +597,14 @@ bool readCard(nfcTagObject *nfcTag) {
   nfcTag->mode = buffer[6];
   nfcTag->special = buffer[7];
 
+  Serial.print("Assigned folder ");
+  Serial.print(buffer[5]);
+  Serial.print(", mode ");
+  Serial.print(buffer[6]);
+  Serial.print(" and special ");
+  Serial.print(buffer[7]);
+  Serial.println(" to nfc object.");
+  
   return true;
 }
 
@@ -636,7 +648,7 @@ void writeCard(nfcTagObject nfcTag) {
   else
     mp3.playMp3FolderTrack(400);
   Serial.println();
-  delay(100);
+  delay(2500); // wait until playing track 400 is finished, adapt length to match the length of track 400
 }
 
 /**
