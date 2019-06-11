@@ -376,11 +376,10 @@ void loop() {
 
   // VOLUME
   int resistance = analogRead(potentioMeter); // read the resistence of the potentiometer
-  int volumeValue = map(resistance, 0, 1024, 23, 0); // map resistence (can be between 0 and 1024) to 0 to 23 
-  // inversely in order for a right turn to be an increase in volume
+  int volumeValue = map(resistance, 0, 1024, 1, 24); // map resistence (can be between 0 and 1024) to 0 to 24
   mp3.setVolume(volumeValue);
-  // Serial.print("Current Volume: ");
-  // Serial.println(mp3.getVolume());
+  Serial.print("Current Volume: ");
+  Serial.println(mp3.getVolume());
 
   // NEXT TRACK
   if (upButton.wasReleased()) {
