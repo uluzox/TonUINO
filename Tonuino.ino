@@ -169,6 +169,7 @@ MFRC522::StatusCode status;
 #define buttonPause A0
 #define buttonUp A1
 #define buttonDown A2
+#define potentioMeter A3
 #define busyPin 4
 
 #define LONG_PRESS 1000
@@ -192,6 +193,7 @@ void setup() {
 
   Serial.println(F("TonUINO Version 2.0"));
   Serial.println(F("(c) Thorsten Voß"));
+  Serial.println(F("Adapted by Thorsten Hersam"));
 
   // Knöpfe mit PullUp
   pinMode(buttonPause, INPUT_PULLUP);
@@ -203,7 +205,7 @@ void setup() {
 
   // DFPlayer Mini initialisieren
   mp3.begin();
-  mp3.setVolume(15);
+  mp3.setVolume(0);
 
   // NFC Leser initialisieren
   SPI.begin();        // Init SPI bus
@@ -372,30 +374,22 @@ void loop() {
       ignorePauseButton = true;
   }
 
-  // VOLUME UP / NEXT TRACK
-  if (upButton.pressedFor(LONG_PRESS)) {
-    Serial.println(F("Volume Up"));
-    mp3.increaseVolume();
-    ignoreUpButton = true;
-  } else if (upButton.wasReleased()) {
-    if (!ignoreUpButton) {
-      nextTrack(random(65536));
-    } else {
-      ignoreUpButton = false;
-    }
+  // VOLUME
+  int resistance = analogRead(potentioMeter); // read the resistence of the potentiometer
+  int volumeValue = map(resistance, 0, 1024, 23, 0); // map resistence (can be between 0 and 1024) to 0 to 23 
+  // inversely in order for a right turn to be an increase in volume
+  mp3.setVolume(volumeValue);
+  // Serial.print("Current Volume: ");
+  // Serial.println(mp3.getVolume());
+
+  // NEXT TRACK
+  if (upButton.wasReleased()) {
+    nextTrack(random(65536));
   }
 
-  // VOLUME DOWN / PREVIOUS TRACK
-  if (downButton.pressedFor(LONG_PRESS)) {
-    Serial.println(F("Volume Down"));
-    mp3.decreaseVolume();
-    ignoreDownButton = true;
-  } else if (downButton.wasReleased()) {
-    if (!ignoreDownButton) {
-      previousTrack();
-    } else {
-      ignoreDownButton = false;
-    }
+  // PREVIOUS TRACK
+  if (downButton.wasReleased()) {
+    previousTrack();
   }
 
   // ############## RESET RFID READER ###########################################
