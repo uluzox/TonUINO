@@ -4,6 +4,12 @@
 #include <MFRC522.h>
 #include <SPI.h>
 #include <SoftwareSerial.h>
+#include <SevenSegmentTM1637.h>
+
+// Display
+const byte PIN_CLK = 5;   // define CLK pin (any digital pin)
+const byte PIN_DIO = 6;   // define DIO pin (any digital pin)
+SevenSegmentTM1637 display(PIN_CLK, PIN_DIO); //set up the 4-Digit Display.
 
 // DFPlayer Mini
 SoftwareSerial mySoftwareSerial(2, 3); // RX, TX
@@ -224,6 +230,9 @@ void setup() {
     }
   }
 
+  // Display initialisieren
+  display.begin();            // initializes the display
+  display.setBacklight(10);  // set the brightness to x %
 }
 
 bool rfid_tag_present_prev = false;
@@ -649,5 +658,38 @@ void dump_byte_array(byte *buffer, byte bufferSize) {
   for (byte i = 0; i < bufferSize; i++) {
     Serial.print(buffer[i] < 0x10 ? " 0" : " ");
     Serial.print(buffer[i], HEX);
+  }
+}
+
+void printNumberToDisplay(int number) {
+ display.clear();
+ if(number>9999) {
+    display.print("----");
+  }
+  else {
+  if (number < 10) {
+    display.setCursor(0,0);
+    display.print(" ");
+    display.setCursor(0,1);
+    display.print(" ");
+    display.setCursor(0,2);
+    display.print(" ");
+    display.setCursor(0,3);
+  }
+  else if ( number < 100) {
+    display.setCursor(0,0);
+    display.print(" ");
+    display.setCursor(0,1);
+    display.print(" ");
+    display.setCursor(0,2);
+  }
+  else  if (number < 1000) {
+    display.setCursor(0,0);
+    display.print(" ");
+    display.setCursor(0, 1);
+  } else {
+    display.setCursor(0, 0);
+  }
+  display.print(number);
   }
 }
