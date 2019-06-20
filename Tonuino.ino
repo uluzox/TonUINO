@@ -661,6 +661,9 @@ void dump_byte_array(byte *buffer, byte bufferSize) {
   }
 }
 
+/**
+ * Print to display right aligned
+ */
 void printNumberToDisplay(int number) {
  display.clear();
  if(number>9999) {
