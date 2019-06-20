@@ -70,6 +70,12 @@ public:
 
 static DFMiniMp3<SoftwareSerial, Mp3Notify> mp3(mySoftwareSerial);
 
+void playTrack(int track) {
+  Serial.print("Playing track: ");
+  Serial.println(currentTrack);
+  mp3.playFolderTrack(myCard.folder, track);
+}
+
 // Leider kann das Modul keine Queue abspielen.
 static uint16_t _lastTrackFinished;
 static void nextTrack(uint16_t track) {
@@ -90,9 +96,8 @@ static void nextTrack(uint16_t track) {
   if (myCard.mode == 2) {
     if (currentTrack != numTracksInFolder) {
       currentTrack = currentTrack + 1;
-      mp3.playFolderTrack(myCard.folder, currentTrack);
-      Serial.print(F("Albummodus ist aktiv -> nächster Track: "));
-      Serial.println(currentTrack);
+      playTrack(currentTrack);
+      Serial.print(F("Albummodus ist aktiv -> nächster Track"));
     } else 
 //      mp3.sleep();   // Je nach Modul kommt es nicht mehr zurück aus dem Sleep!
     { }
@@ -102,9 +107,8 @@ static void nextTrack(uint16_t track) {
     currentTrack = random(1, numTracksInFolder + 1);
     if (currentTrack == oldTrack)
       currentTrack = currentTrack == numTracksInFolder ? 1 : currentTrack+1;
-    Serial.print(F("Party Modus ist aktiv -> zufälligen Track spielen: "));
-    Serial.println(currentTrack);
-    mp3.playFolderTrack(myCard.folder, currentTrack);
+    Serial.print(F("Party Modus ist aktiv -> zufälligen Track spielen"));
+    playTrack(currentTrack);
   }
   if (myCard.mode == 4) {
     Serial.println(F("Einzel Modus aktiv -> Strom sparen"));
@@ -115,8 +119,7 @@ static void nextTrack(uint16_t track) {
       currentTrack = currentTrack + 1;
       Serial.print(F("Hörbuch Modus ist aktiv -> nächster Track und "
                      "Fortschritt speichern"));
-      Serial.println(currentTrack);
-      mp3.playFolderTrack(myCard.folder, currentTrack);
+      playTrack(currentTrack);
       // Fortschritt im EEPROM abspeichern
       EEPROM.write(myCard.folder, currentTrack);
     } else {
@@ -130,22 +133,22 @@ static void nextTrack(uint16_t track) {
 void previousTrack() {
   if (myCard.mode == 1) {
     Serial.println(F("Hörspielmodus ist aktiv -> Track von vorne spielen"));
-    mp3.playFolderTrack(myCard.folder, currentTrack);
+    playTrack(currentTrack);
   }
   if (myCard.mode == 2) {
     Serial.println(F("Albummodus ist aktiv -> vorheriger Track"));
     if (currentTrack != 1) {
       currentTrack = currentTrack - 1;
     }
-    mp3.playFolderTrack(myCard.folder, currentTrack);
+    playTrack(currentTrack);
   }
   if (myCard.mode == 3) {
     Serial.println(F("Party Modus ist aktiv -> Track von vorne spielen"));
-    mp3.playFolderTrack(myCard.folder, currentTrack);
+    playTrack(currentTrack);
   }
   if (myCard.mode == 4) {
     Serial.println(F("Einzel Modus aktiv -> Track von vorne spielen"));
-    mp3.playFolderTrack(myCard.folder, currentTrack);
+    playTrack(currentTrack);
   }
   if (myCard.mode == 5) {
     Serial.println(F("Hörbuch Modus ist aktiv -> vorheriger Track und "
@@ -153,7 +156,7 @@ void previousTrack() {
     if (currentTrack != 1) {
       currentTrack = currentTrack - 1;
     }
-    mp3.playFolderTrack(myCard.folder, currentTrack);
+    playTrack(currentTrack);
     // Fortschritt im EEPROM abspeichern
     EEPROM.write(myCard.folder, currentTrack);
   }
@@ -295,7 +298,7 @@ void loop() {
         Serial.print(F(" Dateien in Ordner "));
         Serial.println(myCard.folder);
 
-        play();
+        playCard();
       }
 
       // Neue Karte konfigurieren
@@ -375,7 +378,7 @@ void loop() {
   mfrc522.PCD_Init(); // Init MFRC522  
 }
 
-void play() {
+void playCard() {
   // Hörspielmodus: eine zufällige Datei aus dem Ordner
   if (myCard.mode == 1) {
     Serial.println(F("Hörspielmodus -> zufälligen Track wiedergeben"));
@@ -404,11 +407,8 @@ void play() {
     currentTrack = EEPROM.read(myCard.folder);
   }
 
-  Serial.print("Playing track: ");
-  Serial.println(currentTrack);
-  mp3.playFolderTrack(myCard.folder, currentTrack);
+  playTrack(currentTrack);
 }
-
 
 int voiceMenu(int numberOfOptions, int startMessage, int messageOffset,
               bool preview = false, int previewFromFolder = 0) {
