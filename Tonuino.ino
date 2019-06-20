@@ -291,6 +291,7 @@ void loop() {
 
         Serial.print("Card placed on reader is same as previous. Resume playing.");
         mp3.start();
+        printNumberToDisplay(currentTrack);
         
       } else if (myCard.cookie == 322417479 && myCard.folder != 0 && myCard.mode != 0) {       
         knownCard = true;
