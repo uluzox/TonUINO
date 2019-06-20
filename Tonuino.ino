@@ -22,8 +22,6 @@ struct nfcTagObject {
 nfcTagObject myCard;
 
 static void nextTrack(uint16_t track);
-int voiceMenu(int numberOfOptions, int startMessage, int messageOffset,
-              bool preview = false, int previewFromFolder = 0);
 
 bool knownCard = false;
 
@@ -123,7 +121,7 @@ static void nextTrack(uint16_t track) {
   }
 }
 
-static void previousTrack() {
+void previousTrack() {
   if (myCard.mode == 1) {
     Serial.println(F("Hörspielmodus ist aktiv -> Track von vorne spielen"));
     mp3.playFolderTrack(myCard.folder, currentTrack);
