@@ -74,6 +74,7 @@ void playTrack(int track) {
   Serial.print("Playing track: ");
   Serial.println(currentTrack);
   mp3.playFolderTrack(myCard.folder, track);
+  printNumberToDisplay(track);
 }
 
 // Leider kann das Modul keine Queue abspielen.
