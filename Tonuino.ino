@@ -315,6 +315,7 @@ void loop() {
   if (!rfid_tag_present && rfid_tag_present_prev){
     Serial.println("Tag gone. Pausing music.");
     mp3.pause();
+    display.clear();
   }
 
   // ######### Listen to buttons if no new tag or tag not removed ###########################
