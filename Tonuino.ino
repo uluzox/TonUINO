@@ -104,6 +104,10 @@ static void nextTrack(uint16_t track) {
       currentTrack = currentTrack + 1;
       playTrack(currentTrack);
       Serial.print(F("Albummodus ist aktiv -> nächster Track"));
+    } else {
+      currentTrack = 1;
+      playTrack(currentTrack);
+      Serial.print(F("Albummodus ist aktiv -> von vorne"));
     }
   }
   if (myCard.mode == 3) {
@@ -138,9 +142,12 @@ void previousTrack() {
     playTrack(currentTrack);
   }
   if (myCard.mode == 2) {
-    Serial.println(F("Albummodus ist aktiv -> vorheriger Track"));
     if (currentTrack != 1) {
+      Serial.println(F("Albummodus ist aktiv -> vorheriger Track"));
       currentTrack = currentTrack - 1;
+    } else {
+      Serial.println(F("Albummodus ist aktiv -> vorheriger Track = letzter Track"));
+      currentTrack = numTracksInFolder;
     }
     playTrack(currentTrack);
   }
