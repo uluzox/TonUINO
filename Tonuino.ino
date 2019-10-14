@@ -1209,7 +1209,7 @@ void loop() {
 
     // admin menu
     if (( upButton.pressedFor(LONG_PRESS) || downButton.pressedFor(LONG_PRESS)) && upButton.isPressed() && downButton.isPressed()) {
-      mp3.pause();
+      //mp3.pause();
       do {
         readButtons();
       } while (upButton.isPressed() || downButton.isPressed());
@@ -1333,10 +1333,6 @@ void onNewCard()
 }
 
 void adminMenu(bool fromCard = false) {
-  //Vergesse die vorherige Karte, wenn das Admin Menü betreten wird
-  forgetLastCard=true;
-  disablestandbyTimer();
-  mp3.pause();
   Serial.println(F("=== adminMenu()"));
   knownCard = false;
   if (fromCard == false) {
@@ -1344,8 +1340,15 @@ void adminMenu(bool fromCard = false) {
     if (mySettings.adminMenuLocked == 1) {
       return;
     }
+     else {
+        
+     //Vergesse die vorherige Karte, wenn das Admin Menü betreten wird
+     forgetLastCard=true;
+     disablestandbyTimer();
+     mp3.pause();
+     }
     // Pin check
-    else if (mySettings.adminMenuLocked == 2) {
+    if (mySettings.adminMenuLocked == 2) {
       uint8_t pin[4];
       mp3.playMp3FolderTrack(991);
       if (askCode(pin) == true) {
