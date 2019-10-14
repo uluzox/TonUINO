@@ -652,7 +652,7 @@ static void nextTrack(uint16_t track) {
       currentTrack = random(1, numTracksInFolder + 1);
       Serial.println(currentTrack);
       mp3.playFolderTrack(myFolder->folder, currentTrack);
-      delay(100);
+      delay(200);
       mp3.pause();
       Serial.println(F("Kurz angespielt und pausiert: warte auf Taste"));
       setstandbyTimer();
