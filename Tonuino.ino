@@ -652,7 +652,7 @@ static void nextTrack(uint16_t track) {
       currentTrack = random(1, numTracksInFolder + 1);
       Serial.println(currentTrack);
       mp3.playFolderTrack(myFolder->folder, currentTrack);
-      delay(200);
+      delay(500);
       mp3.pause();
       Serial.println(F("Kurz angespielt und pausiert: warte auf Taste"));
       setstandbyTimer();
@@ -1209,7 +1209,7 @@ void loop() {
 
     // admin menu
     if (( upButton.pressedFor(LONG_PRESS) || downButton.pressedFor(LONG_PRESS)) && upButton.isPressed() && downButton.isPressed()) {
-      //mp3.pause();
+      mp3.pause();
       do {
         readButtons();
       } while (upButton.isPressed() || downButton.isPressed());
@@ -1340,8 +1340,7 @@ void adminMenu(bool fromCard = false) {
     if (mySettings.adminMenuLocked == 1) {
       return;
     }
-     else {
-        
+     else if (mySettings.adminMenuLocked == 1) {
      //Vergesse die vorherige Karte, wenn das Admin Menü betreten wird
      forgetLastCard=true;
      disablestandbyTimer();
