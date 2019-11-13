@@ -297,8 +297,14 @@ void loop() {
         // C does not know equality comparison for structs a la myCard == previousCard, use member comparison instead
 
         Serial.print("Card placed on reader is same as previous. Resume playing.");
+        Serial.println(currentTrack);
         mp3.start();
-        printNumberToDisplay(currentTrack);
+        if (myCard.mode == 4) {
+          // Einzelmodus: nur ein Track exisitiert
+          printNumberToDisplay(1);
+        } else {
+          printNumberToDisplay(currentTrack);
+        }
         
       } else if (myCard.cookie == 322417479 && myCard.folder != 0 && myCard.mode != 0) {       
         knownCard = true;
