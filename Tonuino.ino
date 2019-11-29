@@ -246,6 +246,9 @@ void loadSettingsFromFlash() {
   Serial.print(F("Locked: "));
   Serial.println(mySettings.locked);
 
+  Serial.print(F("Stop music when card away: "));
+  Serial.println(mySettings.stopWhenCardAway);
+
   Serial.print(F("Sleep Timer: "));
   Serial.println(mySettings.standbyTimer);
 
