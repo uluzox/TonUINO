@@ -5,7 +5,7 @@
 #include <SPI.h>
 #include <SoftwareSerial.h>
 #include <avr/sleep.h>
-
+#include <SevenSegmentTM1637.h>
 /*
    _____         _____ _____ _____ _____
   |_   _|___ ___|  |  |     |   | |     |
@@ -20,6 +20,11 @@
 // uncomment the below line to enable volume control with a potentiometer
 #define POTI
 static const uint32_t cardCookie = 322417479;
+
+// Display
+const byte PIN_CLK = 5;   // define CLK pin (any digital pin)
+const byte PIN_DIO = 6;   // define DIO pin (any digital pin)
+SevenSegmentTM1637 display(PIN_CLK, PIN_DIO); //set up the 4-Digit Display.
 
 // DFPlayer Mini
 SoftwareSerial mySoftwareSerial(2, 3); // RX, TX
@@ -503,7 +508,7 @@ class RepeatSingleModifier: public Modifier {
       Serial.println(F("== RepeatSingleModifier::handleNext() -> REPEAT CURRENT TRACK"));
       delay(50);
       if (isPlaying()) return true;
-      mp3.playFolderTrack(myFolder->folder, currentTrack);
+      playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
       _lastTrackFinished = 0;
       return true;
     }
@@ -651,7 +656,7 @@ static void nextTrack(uint16_t track) {
       Serial.println(F("Hörspielmodus ist aktiv -> neuer Track nur bei Play"));
       currentTrack = random(1, numTracksInFolder + 1);
       Serial.println(currentTrack);
-      mp3.playFolderTrack(myFolder->folder, currentTrack);
+      playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
       delay(500);
       mp3.pause();
       Serial.println(F("Kurz angespielt und pausiert: warte auf Taste"));
@@ -663,7 +668,7 @@ static void nextTrack(uint16_t track) {
   if (myFolder->mode == 2 || myFolder->mode == 8) {
     if (currentTrack != numTracksInFolder) {
       currentTrack = currentTrack + 1;
-      mp3.playFolderTrack(myFolder->folder, currentTrack);
+      playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
       Serial.print(F("Albummodus ist aktiv -> nächster Track: "));
       Serial.print(currentTrack);
     } else
@@ -697,7 +702,7 @@ static void nextTrack(uint16_t track) {
       Serial.print(F("Hörbuch Modus ist aktiv -> nächster Track und "
                      "Fortschritt speichern"));
       Serial.println(currentTrack);
-      mp3.playFolderTrack(myFolder->folder, currentTrack);
+      playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
       // Fortschritt im EEPROM abspeichern
       EEPROM.update(myFolder->folder, currentTrack);
     } else {
@@ -717,7 +722,7 @@ static void previousTrack() {
     if (currentTrack != firstTrack) {
       currentTrack = currentTrack - 1;
     }
-    mp3.playFolderTrack(myFolder->folder, currentTrack);
+    playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
   }
   if (myFolder->mode == 3 || myFolder->mode == 9) {
     if (currentTrack != 1) {
@@ -734,7 +739,7 @@ static void previousTrack() {
   }
   if (myFolder->mode == 4) {
     Serial.println(F("Einzel Modus aktiv -> Track von vorne spielen"));
-    mp3.playFolderTrack(myFolder->folder, currentTrack);
+    playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
   }
   if (myFolder->mode == 5) {
     Serial.println(F("Hörbuch Modus ist aktiv -> vorheriger Track und "
@@ -742,7 +747,7 @@ static void previousTrack() {
     if (currentTrack != 1) {
       currentTrack = currentTrack - 1;
     }
-    mp3.playFolderTrack(myFolder->folder, currentTrack);
+    playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
     // Fortschritt im EEPROM abspeichern
     EEPROM.update(myFolder->folder, currentTrack);
   }
@@ -855,6 +860,10 @@ void setup() {
   mp3.begin();
   // Zwei Sekunden warten bis der DFPlayer Mini initialisiert ist
   delay(2000);
+
+  // Display initialisieren
+  display.begin();            // initializes the display
+  display.setBacklight(10);  // set the brightness to x %
 
   #ifdef POTI
   PotiValue = analogRead(POTIPIN);
@@ -1004,13 +1013,13 @@ void playFolder() {
     Serial.println(F("Hörspielmodus -> zufälligen Track wiedergeben"));
     currentTrack = random(1, numTracksInFolder + 1);
     Serial.println(currentTrack);
-    mp3.playFolderTrack(myFolder->folder, currentTrack);
+    playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
   }
   // Album Modus: kompletten Ordner spielen
   if (myFolder->mode == 2) {
     Serial.println(F("Album Modus -> kompletten Ordner wiedergeben"));
     currentTrack = 1;
-    mp3.playFolderTrack(myFolder->folder, currentTrack);
+    playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
   }
   // Party Modus: Ordner in zufälliger Reihenfolge
   if (myFolder->mode == 3) {
@@ -1025,7 +1034,7 @@ void playFolder() {
     Serial.println(
       F("Einzel Modus -> eine Datei aus dem Odrdner abspielen"));
     currentTrack = myFolder->special;
-    mp3.playFolderTrack(myFolder->folder, currentTrack);
+    playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
   }
   // Hörbuch Modus: kompletten Ordner spielen und Fortschritt merken
   if (myFolder->mode == 5) {
@@ -1035,7 +1044,7 @@ void playFolder() {
     if (currentTrack == 0 || currentTrack > numTracksInFolder) {
       currentTrack = 1;
     }
-    mp3.playFolderTrack(myFolder->folder, currentTrack);
+    playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
   }
   // Spezialmodus Von-Bin: Hörspiel: eine zufällige Datei aus dem Ordner
   if (myFolder->mode == 7) {
@@ -1046,7 +1055,7 @@ void playFolder() {
     numTracksInFolder = myFolder->special2;
     currentTrack = random(myFolder->special, numTracksInFolder + 1);
     Serial.println(currentTrack);
-    mp3.playFolderTrack(myFolder->folder, currentTrack);
+    playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
   }
 
   // Spezialmodus Von-Bis: Album: alle Dateien zwischen Start und Ende spielen
@@ -1057,7 +1066,7 @@ void playFolder() {
     Serial.println(myFolder->special2);
     numTracksInFolder = myFolder->special2;
     currentTrack = myFolder->special;
-    mp3.playFolderTrack(myFolder->folder, currentTrack);
+    playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
   }
 
   // Spezialmodus Von-Bis: Party Ordner in zufälliger Reihenfolge
@@ -2022,6 +2031,18 @@ void writeCard(nfcTagObject nfcTag) {
 }
 
 
+void playFolderTrack(int folder, int mode, int track) {
+  Serial.println(F("=== playFolderTrack()"));
+  mp3.playFolderTrack(folder, track);
+
+  // Display
+    if (mode == 4) {
+      // Einzelmodus: nur ein Track exisitiert
+      printNumberToDisplay(1);
+    } else {
+      printNumberToDisplay(track);
+    }
+}
 
 /**
   Helper routine to dump a byte array as hex values to Serial.
@@ -2030,6 +2051,42 @@ void dump_byte_array(byte * buffer, byte bufferSize) {
   for (byte i = 0; i < bufferSize; i++) {
     Serial.print(buffer[i] < 0x10 ? " 0" : " ");
     Serial.print(buffer[i], HEX);
+  }
+}
+
+/**
+ * Print to display right aligned
+ */
+void printNumberToDisplay(int number) {
+ display.clear();
+ if(number>9999) {
+    display.print("----");
+  }
+  else {
+  if (number < 10) {
+    display.setCursor(0,0);
+    display.print(" ");
+    display.setCursor(0,1);
+    display.print(" ");
+    display.setCursor(0,2);
+    display.print(" ");
+    display.setCursor(0,3);
+  }
+  else if ( number < 100) {
+    display.setCursor(0,0);
+    display.print(" ");
+    display.setCursor(0,1);
+    display.print(" ");
+    display.setCursor(0,2);
+  }
+  else  if (number < 1000) {
+    display.setCursor(0,0);
+    display.print(" ");
+    display.setCursor(0, 1);
+  } else {
+    display.setCursor(0, 0);
+  }
+  display.print(number);
   }
 }
 
