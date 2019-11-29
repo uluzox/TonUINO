@@ -18,7 +18,7 @@
 */
 
 // uncomment the below line to enable volume control with a potentiometer
-//#define POTI
+#define POTI
 static const uint32_t cardCookie = 322417479;
 
 // DFPlayer Mini
@@ -86,7 +86,7 @@ static uint16_t _lastTrackFinished;
 
 
 #ifdef POTI
-const byte POTIPIN      =7;
+const byte POTIPIN      =A3;
 uint16_t PotiValue;
 uint16_t oldPotiValue;
 #endif
@@ -183,7 +183,7 @@ void resetSettings() {
   mySettings.version = 2;
   mySettings.maxVolume = 25;
   mySettings.minVolume = 1;
-  mySettings.initVolume = 15;
+  mySettings.initVolume = 5;
   mySettings.eq = 1;
   mySettings.locked = false;
   mySettings.standbyTimer = 0;
