@@ -729,8 +729,9 @@ static void previousTrack() {
   
   if (myFolder->mode == 2 || myFolder->mode == 8) {
     Serial.println(F("Albummodus ist aktiv -> vorheriger Track"));
-    if (currentTrack != firstTrack) {
-      currentTrack = currentTrack - 1;
+    currentTrack = currentTrack - 1;
+    if (currentTrack < 1) {
+      currentTrack = numTracksInFolder;
     }
     playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
   }
