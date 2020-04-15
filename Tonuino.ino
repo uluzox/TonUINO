@@ -128,10 +128,13 @@ class Mp3Notify {
       Serial.println(errorCode);
     }
     static void OnPlayFinished(uint16_t track) {
-      //      Serial.print("Track beendet");
-      //      Serial.println(track);
-      //      delay(100);
-      nextTrack(track);
+      // FIXME should only be for Album modus: but I do not use anything else so far
+      // it was easier to implement this here than in nextTrack!
+      if (currentTrack == numTracksInFolder) {
+        Serial.println("End of folder reached: do not loop folder automatically");
+      } else {
+        nextTrack(track);
+      }
     }
     static void OnCardOnline(uint16_t code) {
       Serial.println(F("SD Karte online "));
