@@ -635,7 +635,7 @@ class Farbenmemory: public Modifier {
 
 
 // Leider kann das Modul selbst keine Queue abspielen, daher müssen wir selbst die Queue verwalten
-static void nextTrack(uint16_t track) {  
+static void nextTrack(uint16_t track) {
   Serial.println(track);
   if (activeModifier != NULL)
     if (activeModifier->handleNext() == true)
@@ -657,7 +657,7 @@ static void nextTrack(uint16_t track) {
     Serial.println(F("No card, do not do anything."));
     return;
   }
-  
+
   if (myFolder->mode == 1 || myFolder->mode == 7) {
       //anderen zufälligen Track abspielen WENN der vorhergehende nicht mehr spielt und Play gedrückt wird
       Serial.println(F("Hörspielmodus ist aktiv -> neuer Track nur bei Play"));
@@ -728,7 +728,7 @@ static void previousTrack() {
     Serial.println(F("No card, do not do anything."));
     return;
   }
-  
+
   if (myFolder->mode == 2 || myFolder->mode == 8) {
     Serial.println(F("Albummodus ist aktiv -> vorheriger Track"));
     if (currentTrack != firstTrack) {
