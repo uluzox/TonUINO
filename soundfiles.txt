@@ -87,10 +87,3 @@ mp3/0913_stopWhenCardAway.mp3|Kartenverhalten festlegen.
 mp3/0937_stopWhenCardAway_intro.mp3|Soll die Wiedergabe pausiert werden, wenn Karte entfernt wird?
 mp3/0938_no.mp3
 mp3/0939_yes.mp3
-mp3/1000_Farbenmemory_intro.mp3|
-mp3/1001_Farbenmemory_falsch.mp3|Das war leider falsch!
-mp3/1002_Farbenmemory_richtig.mp3|Super! Alles richtig erraten!
-mp3/1010_Gelb|Gelb
-mp3/1011_Grün|Grün
-mp3/1012_Blau|Blau
-mp3/1013_Rot|Rot

@@ -11,11 +11,14 @@
   |_   _|___ ___|  |  |     |   | |     |
     | | | . |   |  |  |-   -| | | |  |  |
     |_| |___|_|_|_____|_____|_|___|_____|
-    TonUINO Version 2.1
+    TonUINO Version 2.1 + McGreg changes v0.1
 
     created by Thorsten Voß and licensed under GNU/GPL.
     Information and contribution at https://tonuino.de.
 */
+
+// uncomment the below line to enable five button support
+//#define FIVEBUTTONS
 
 // uncomment the below line to enable volume control with a potentiometer
 #define POTI
@@ -97,14 +100,6 @@ uint16_t oldPotiValue;
 #endif
 
 
-uint8_t simonSays[20];
-uint8_t simonLength;
-uint8_t simonCurrent;
-
-#define GELB 1010
-#define GRUEN 1011
-#define BLAU 1012
-#define ROT 1013
 
 static void nextTrack(uint16_t track);
 uint8_t voiceMenu(int numberOfOptions, int startMessage, int messageOffset,
@@ -127,7 +122,13 @@ class Mp3Notify {
       Serial.print("Com Error ");
       Serial.println(errorCode);
     }
-    static void OnPlayFinished(uint16_t track) {
+    static void PrintlnSourceAction(DfMp3_PlaySources source, const char* action) {
+      if (source & DfMp3_PlaySources_Sd) Serial.print("SD Karte ");
+      if (source & DfMp3_PlaySources_Usb) Serial.print("USB ");
+      if (source & DfMp3_PlaySources_Flash) Serial.print("Flash ");
+      Serial.println(action);
+    }
+    static void OnPlayFinished(DfMp3_PlaySources source, uint16_t track) {
       // FIXME should only be for Album modus: but I do not use anything else so far
       // it was easier to implement this here than in nextTrack!
       if (currentTrack == numTracksInFolder) {
@@ -136,23 +137,14 @@ class Mp3Notify {
         nextTrack(track);
       }
     }
-    static void OnCardOnline(uint16_t code) {
-      Serial.println(F("SD Karte online "));
+    static void OnPlaySourceOnline(DfMp3_PlaySources source) {
+      PrintlnSourceAction(source, "online");
     }
-    static void OnCardInserted(uint16_t code) {
-      Serial.println(F("SD Karte bereit "));
+    static void OnPlaySourceInserted(DfMp3_PlaySources source) {
+      PrintlnSourceAction(source, "bereit");
     }
-    static void OnCardRemoved(uint16_t code) {
-      Serial.println(F("SD Karte entfernt "));
-    }
-    static void OnUsbOnline(uint16_t code) {
-      Serial.println(F("USB online "));
-    }
-    static void OnUsbInserted(uint16_t code) {
-      Serial.println(F("USB bereit "));
-    }
-    static void OnUsbRemoved(uint16_t code) {
-      Serial.println(F("USB entfernt "));
+    static void OnPlaySourceRemoved(DfMp3_PlaySources source) {
+      PrintlnSourceAction(source, "entfernt");
     }
 };
 
@@ -514,7 +506,7 @@ class RepeatSingleModifier: public Modifier {
       Serial.println(F("== RepeatSingleModifier::handleNext() -> REPEAT CURRENT TRACK"));
       delay(50);
       if (isPlaying()) return true;
-      playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
+      mp3.playFolderTrack(myFolder->folder, currentTrack);
       _lastTrackFinished = 0;
       return true;
     }
@@ -527,118 +519,44 @@ class RepeatSingleModifier: public Modifier {
     }
 };
 
-class Farbenmemory: public Modifier {
+// An modifier can also do somethings in addition to the modified action
+// by returning false (not handled) at the end
+// This simple FeedbackModifier will tell the volume before changing it and
+// give some feedback once a RFID card is detected.
+class FeedbackModifier: public Modifier {
   public:
-      Farbenmemory() {
-        simonLength=3;
-        simonCurrent=0;
-        pauseMusic();
-        forgetLastCard=true;
-      Serial.println(F("=== Simon Says()"));
-      generateColors();
-      }
-      //Farben: 0=nicht verwendet, 1=Zurück/Leise, 2=Play/Pause, 3=Vor/Lauter
-      uint16_t Farben[4] ={0, GELB, GRUEN, BLAU};
-    bool generateColors() {
-      mp3.playMp3FolderTrack(1000);
-      delay(3000);
-              Serial.println(F("===Color generated: "));
-          for (int i=0; i<simonLength; i++)
-      {
-        randomSeed(millis() + random(1000));
-        simonSays[i] = random(1, 4);
-        delay(1000);
-
-        Serial.println(simonSays[i]);
-        Serial.print("-");
-        mp3.playMp3FolderTrack(Farben[simonSays[i]]);
-        Serial.print("Farbe:");
-        Serial.println(Farben[simonSays[i]]);
-
-      }
-      Serial.println();
-      simonCurrent=0;
-    }
-    bool checkColor(uint8_t value)
-    {
-      if (simonSays[simonCurrent]==value)
-      {
-
-        Serial.println("Taste richtig erraten");
-        simonCurrent++;
-        Serial.println(simonCurrent);
-        Serial.println(simonLength);
-        //correct
-
-        if (simonCurrent==simonLength)
-        {//die ganze Folge wurde erraten
-          mp3.playMp3FolderTrack(1002);
-          delay(3000);
-          Serial.println(F("===die ganze Folge wurde erraten"));
-          //Größe des Arrays darf nicht überschritten werden
-          if (simonLength+1<20)
-          {
-            simonLength++;
-            simonCurrent=0;
-            generateColors();
-          }
-          return true;
-        }
-        return true;
-      }
-      else
-      {
-        mp3.playMp3FolderTrack(1001);
-        Serial.print(F("===Leider falsch! Richtig wäre"));
-        delay(3000);
-        Serial.println(simonSays[simonCurrent]);
-        simonCurrent=0;
-        simonLength=3;
-        generateColors();
-        return false;
-      }
-    }
     virtual bool handleVolumeDown() {
-     checkColor(1);
-       Serial.println(F("== Farbenmemory::handleVolumeDown()!"));
-      return true;
-    }
-       virtual bool handlePreviousButton() {
-        handleVolumeDown();
-    }
-
-
-     virtual bool handlePause()     {
-      checkColor(2);
-      return true;
-     }
-    virtual bool handleVolumeUp() {
-      checkColor(3);
-      Serial.println(F("== Farbenmemory::handleVolumeUp()!"));
-      return true;
-    }
-    virtual bool handleNextButton()       {
-      handleVolumeUp();
-    }
-    virtual bool handleNext()       {
-      return true;
-    }
-    virtual bool handlePrevious()         {
-      return true;
-    }
-    virtual bool handleRFID(nfcTagObject *newCard) {
-      Serial.println(F("== Farbenmemory::handleRFID()"));
+      if (volume > mySettings.minVolume) {
+        mp3.playAdvertisement(volume - 1);
+      }
+      else {
+        mp3.playAdvertisement(volume);
+      }
+      delay(500);
+      Serial.println(F("== FeedbackModifier::handleVolumeDown()!"));
       return false;
     }
-        uint8_t getActive() {
-      Serial.println(F("== Farbenmemory::getActive()"));
-      return 6;
+    virtual bool handleVolumeUp() {
+      if (volume < mySettings.maxVolume) {
+        mp3.playAdvertisement(volume + 1);
+      }
+      else {
+        mp3.playAdvertisement(volume);
+      }
+      delay(500);
+      Serial.println(F("== FeedbackModifier::handleVolumeUp()!"));
+      return false;
+    }
+    virtual bool handleRFID(nfcTagObject *newCard) {
+      Serial.println(F("== FeedbackModifier::handleRFID()"));
+      return false;
     }
 };
 
 
 // Leider kann das Modul selbst keine Queue abspielen, daher müssen wir selbst die Queue verwalten
-static void nextTrack(uint16_t track) {  
+//static uint16_t _lastTrackFinished;
+static void nextTrack(uint16_t track) {
   Serial.println(track);
   if (activeModifier != NULL)
     if (activeModifier->handleNext() == true)
@@ -647,7 +565,6 @@ static void nextTrack(uint16_t track) {
   if (track == _lastTrackFinished) {
     return;
   }
-
   _lastTrackFinished = track;
 
   if (knownCard == false)
@@ -660,18 +577,11 @@ static void nextTrack(uint16_t track) {
     Serial.println(F("No card, do not do anything."));
     return;
   }
-  
-  if (myFolder->mode == 1 || myFolder->mode == 7) {
-      //anderen zufälligen Track abspielen WENN der vorhergehende nicht mehr spielt und Play gedrückt wird
-      Serial.println(F("Hörspielmodus ist aktiv -> neuer Track nur bei Play"));
-      currentTrack = random(1, numTracksInFolder + 1);
-      Serial.println(currentTrack);
-      playFolderTrack(myFolder->folder, myFolder->mode, currentTrack);
-      delay(500);
-      pauseMusic();
-      Serial.println(F("Kurz angespielt und pausiert: warte auf Taste"));
-      setstandbyTimer();
 
+  if (myFolder->mode == 1 || myFolder->mode == 7) {
+    Serial.println(F("Hörspielmodus ist aktiv -> keinen neuen Track spielen"));
+    setstandbyTimer();
+    //    mp3.sleep(); // Je nach Modul kommt es nicht mehr zurück aus dem Sleep!
 
 
   }
@@ -717,6 +627,7 @@ static void nextTrack(uint16_t track) {
       //      mp3.sleep();  // Je nach Modul kommt es nicht mehr zurück aus dem Sleep!
       // Fortschritt zurück setzen
       EEPROM.update(myFolder->folder, 1);
+      forgetLastCard=true;
       setstandbyTimer();
     }
   }
@@ -729,7 +640,7 @@ static void previousTrack() {
     Serial.println(F("No card, do not do anything."));
     return;
   }
-  
+
   if (myFolder->mode == 2 || myFolder->mode == 8) {
     Serial.println(F("Albummodus ist aktiv -> vorheriger Track"));
     currentTrack = currentTrack - 1;
@@ -784,6 +695,12 @@ MFRC522::StatusCode status;
 #define buttonDown A2
 #define busyPin 4
 #define shutdownPin 7
+#define openAnalogPin A6
+
+#ifdef FIVEBUTTONS
+#define buttonFourPin A3
+#define buttonFivePin A4
+#endif
 
 #define LONG_PRESS 1000
 
@@ -791,10 +708,17 @@ MFRC522::StatusCode status;
 Button pauseButton(buttonPause);
 Button upButton(buttonUp);
 Button downButton(buttonDown);
-
+#ifdef FIVEBUTTONS
+Button buttonFour(buttonFourPin);
+Button buttonFive(buttonFivePin);
+#endif
 bool ignorePauseButton = false;
 bool ignoreUpButton = false;
 bool ignoreDownButton = false;
+#ifdef FIVEBUTTONS
+bool ignoreButtonFour = false;
+bool ignoreButtonFive = false;
+#endif
 
 /// Funktionen für den Standby Timer (z.B. über Pololu-Switch oder Mosfet)
 
@@ -850,7 +774,15 @@ void waitForTrackToFinish() {
 void setup() {
 
   Serial.begin(115200); // Es gibt ein paar Debug Ausgaben über die serielle Schnittstelle
-  randomSeed(analogRead(A7)); // Zufallsgenerator initialisieren
+
+  // Wert für randomSeed() erzeugen durch das mehrfache Sammeln von rauschenden LSBs eines offenen Analogeingangs
+  uint32_t ADC_LSB;
+  uint32_t ADCSeed;
+  for(uint8_t i = 0; i < 128; i++) {
+    ADC_LSB = analogRead(openAnalogPin) & 0x1;
+    ADCSeed ^= ADC_LSB << (i % 32);
+  }
+  randomSeed(ADCSeed); // Zufallsgenerator initialisieren
 
   // Dieser Hinweis darf nicht entfernt werden
   Serial.println(F("\n _____         _____ _____ _____ _____"));
@@ -909,7 +841,10 @@ void setup() {
   pinMode(buttonPause, INPUT_PULLUP);
   pinMode(buttonUp, INPUT_PULLUP);
   pinMode(buttonDown, INPUT_PULLUP);
-
+#ifdef FIVEBUTTONS
+  pinMode(buttonFourPin, INPUT_PULLUP);
+  pinMode(buttonFivePin, INPUT_PULLUP);
+#endif
   pinMode(shutdownPin, OUTPUT);
   digitalWrite(shutdownPin, LOW);
 
@@ -933,6 +868,10 @@ void readButtons() {
   pauseButton.read();
   upButton.read();
   downButton.read();
+#ifdef FIVEBUTTONS
+  buttonFour.read();
+  buttonFive.read();
+#endif
 }
 
 void volumeUpButton() {
@@ -949,7 +888,7 @@ void volumeUpButton() {
   Serial.println(volume);
   #endif
   #ifdef POTI
-  nextButton();
+nextButton();
   #endif
 }
 
@@ -966,9 +905,8 @@ void volumeDownButton() {
   }
   Serial.println(volume);
   #endif
-
-  #ifdef POTI
-  previousButton();
+    #ifdef POTI
+previousButton();
   #endif
 }
 
@@ -976,6 +914,7 @@ void nextButton() {
   if (activeModifier != NULL)
     if (activeModifier->handleNextButton() == true)
       return;
+
   nextTrack(random(65536));
   delay(1000);
 }
@@ -988,18 +927,15 @@ void previousButton() {
   previousTrack();
   delay(1000);
 }
-
 #ifdef POTI
 void potiVolume() {
 
   PotiValue = analogRead(POTIPIN);
   //Serial.println("Analog output Poti:");
   //Serial.println(PotiValue);
-  //Hysterese von 10 auf den 1024 Potiwerten
-  if (PotiValue > oldPotiValue+10 || PotiValue < oldPotiValue-10 ) {
-
+  PotiValue = map(PotiValue, 0,1024,mySettings.minVolume, mySettings.maxVolume+1);
+  if (PotiValue > oldPotiValue || PotiValue < oldPotiValue ) {
       oldPotiValue=PotiValue;
-      PotiValue = map(PotiValue, 0,1024,mySettings.minVolume, mySettings.maxVolume+1);
       if (activeModifier != NULL)
         if (activeModifier->handlePotiVolume() == true)
           return;
@@ -1013,7 +949,6 @@ void potiVolume() {
 void playFolder() {
   Serial.println(F("== playFolder()")) ;
   disablestandbyTimer();
-  randomSeed(millis() + random(1000));
   knownCard = true;
   _lastTrackFinished = 0;
   numTracksInFolder = mp3.getFolderTrackCount(myFolder->folder);
@@ -1136,6 +1071,12 @@ byte pollCard()
       retries = maxRetries;
       hasCard = true;
       return bSameUID ? PCS_CARD_IS_BACK : PCS_NEW_CARD;
+          }
+          else //readCard war nicht erfolgreich
+          {
+            mfrc522.PICC_HaltA();
+            mfrc522.PCD_StopCrypto1();
+            Serial.print(F("Karte konnte nicht gelesen werden"));
     }
     }
     }
@@ -1206,10 +1147,7 @@ void handleCardReader()
           onNewCard();
       }
     }
-    //Wenn die gleiche Karte (mehrmals) aufgelegt wird, mache nichts, wenn gerade gespielt wird
-    else if (!isPlaying()) {
-      onNewCard();
-    }
+
       break;
     }
   }
@@ -1223,7 +1161,11 @@ void loop() {
 
     // Modifier : WIP!
     if (activeModifier != NULL) {
+      if (!isPlaying()) {
+        startMusic();
+      }
       activeModifier->loop();
+
     }
 
     // Buttons werden nun über JS_Button gehandelt, dadurch kann jede Taste
@@ -1231,11 +1173,11 @@ void loop() {
     readButtons();
 
     // admin menu
-    if (( upButton.pressedFor(LONG_PRESS) || downButton.pressedFor(LONG_PRESS)) && upButton.isPressed() && downButton.isPressed()) {
+    if ((pauseButton.pressedFor(LONG_PRESS) || upButton.pressedFor(LONG_PRESS) || downButton.pressedFor(LONG_PRESS)) && pauseButton.isPressed() && upButton.isPressed() && downButton.isPressed()) {
       pauseMusic();
       do {
         readButtons();
-      } while (upButton.isPressed() || downButton.isPressed());
+      } while (pauseButton.isPressed() || upButton.isPressed() || downButton.isPressed());
       readButtons();
       adminMenu();
       return;
@@ -1281,6 +1223,7 @@ void loop() {
     }
 
     if (upButton.pressedFor(LONG_PRESS)) {
+#ifndef FIVEBUTTONS
       if (isPlaying()) {
         if (!mySettings.invertVolumeButtons) {
           volumeUpButton();
@@ -1293,6 +1236,7 @@ void loop() {
         playShortCut(1);
       }
       ignoreUpButton = true;
+#endif
     } else if (upButton.wasReleased()) {
       if (!ignoreUpButton)
         if (!mySettings.invertVolumeButtons) {
@@ -1305,6 +1249,7 @@ void loop() {
     }
 
     if (downButton.pressedFor(LONG_PRESS)) {
+#ifndef FIVEBUTTONS
       if (isPlaying()) {
         if (!mySettings.invertVolumeButtons) {
           volumeDownButton();
@@ -1317,6 +1262,7 @@ void loop() {
         playShortCut(2);
       }
       ignoreDownButton = true;
+#endif
     } else if (downButton.wasReleased()) {
       if (!ignoreDownButton) {
         if (!mySettings.invertVolumeButtons) {
@@ -1328,18 +1274,44 @@ void loop() {
       }
       ignoreDownButton = false;
     }
-
-    // Ende der Buttons
-
-#ifdef POTI
-    potiVolume();
+#ifdef FIVEBUTTONS
+    if (buttonFour.wasReleased()) {
+      if (isPlaying()) {
+        if (!mySettings.invertVolumeButtons) {
+          volumeUpButton();
+        }
+        else {
+          nextButton();
+        }
+      }
+      else {
+        playShortCut(1);
+      }
+    }
+    if (buttonFive.wasReleased()) {
+      if (isPlaying()) {
+        if (!mySettings.invertVolumeButtons) {
+          volumeDownButton();
+        }
+        else {
+          previousButton();
+        }
+      }
+      else {
+        playShortCut(2);
+      }
+    }
 #endif
+    // Ende der Buttons
+    #ifdef POTI
+    potiVolume();
+    #endif
       handleCardReader();
 }
 
 void onNewCard()
 {
-  forgetLastCard=false;
+   forgetLastCard=false;
   // make random a little bit more "random"
   randomSeed(millis() + random(1000));
     if (myCard.cookie == cardCookie && myCard.nfcFolderSettings.folder != 0 && myCard.nfcFolderSettings.mode != 0) {
@@ -1356,6 +1328,10 @@ void onNewCard()
 }
 
 void adminMenu(bool fromCard = false) {
+  //Vergesse die vorherige Karte, wenn das Admin Menü betreten wird
+  forgetLastCard=true;
+  disablestandbyTimer();
+  pauseMusic();
   Serial.println(F("=== adminMenu()"));
   knownCard = false;
   if (fromCard == false) {
@@ -1363,14 +1339,8 @@ void adminMenu(bool fromCard = false) {
     if (mySettings.adminMenuLocked == 1) {
       return;
     }
-     else if (mySettings.adminMenuLocked == 1) {
-     //Vergesse die vorherige Karte, wenn das Admin Menü betreten wird
-     forgetLastCard=true;
-     disablestandbyTimer();
-     pauseMusic();
-     }
     // Pin check
-    if (mySettings.adminMenuLocked == 2) {
+    else if (mySettings.adminMenuLocked == 2) {
       uint8_t pin[4];
       mp3.playMp3FolderTrack(991);
       if (askCode(pin) == true) {
@@ -1770,6 +1740,7 @@ void setupCard() {
   }
   delay(1000);
 }
+
 bool readCard(nfcTagObject * nfcTag) {
   nfcTagObject tempCard;
   // Show some details of the PICC (that is: the tag/card)
@@ -1885,6 +1856,7 @@ bool readCard(nfcTagObject * nfcTag) {
   tempCard.nfcFolderSettings.special2 = buffer[8];
 
   if (tempCard.cookie == cardCookie) {
+
     if (activeModifier != NULL && tempCard.nfcFolderSettings.folder != 0) {
       if (activeModifier->handleRFID(&tempCard) == true) {
         return false;
@@ -1903,7 +1875,7 @@ bool readCard(nfcTagObject * nfcTag) {
             startMusic();
             delay(100);
             mp3.playAdvertisement(261);
-            delay(1000);
+            delay(100);
             pauseMusic();
           }
           mfrc522.PICC_HaltA();
@@ -1921,7 +1893,7 @@ bool readCard(nfcTagObject * nfcTag) {
           startMusic();
           delay(100);
           mp3.playAdvertisement(260);
-          delay(1000);
+          delay(100);
           pauseMusic();
         }
       }
@@ -1934,7 +1906,7 @@ bool readCard(nfcTagObject * nfcTag) {
         case 3: activeModifier = new Locked(); break;
         case 4: activeModifier = new ToddlerMode(); break;
         case 5: activeModifier = new KindergardenMode(); break;
-        case 6: activeModifier = new Farbenmemory(); break;
+        case 6: activeModifier = new RepeatSingleModifier(); break;
       }
       mfrc522.PICC_HaltA();
       mfrc522.PCD_StopCrypto1();
